@@ -1,0 +1,21 @@
+version: '3.4'
+
+services:
+    # mariadb:
+    #     image: "mariadb:10.3"
+    #     volumes:
+    #         - ./db:/var/lib/mysql
+    #     environment:
+    #         - MYSQL_ROOT_PASSWORD=root
+    # myadmin:
+    #     image: "phpmyadmin/phpmyadmin:4.7.5-1"
+    #     ports:
+    #         - "8080:80"
+    #     links:
+    #         - mariadb:db
+    mongodb:
+        image: "mongo:3.5.13"
+        volumes:
+            - ./db:/data/db
+        ports:
+            - "27017:27017"

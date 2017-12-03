@@ -1,0 +1,523 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "",
+    "version": "1.0",
+    "title": "Data Exchange"
+  },
+  "host": "api.smartcity.kmitl.io",
+  "basePath": "/api/v1",
+  "tags": [
+    {
+      "name": "users"
+    },
+    {
+      "name": "collections"
+    },
+    {
+      "name": "tickets"
+    },
+    {
+      "name": "access control"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/users": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Add a new user",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UserForm"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/users/{userName}/token": {
+      "put": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Generate access token",
+        "parameters": [
+          {
+            "name": "userName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "operation success",
+            "schema": {
+              "type": "string",
+              "example": "token"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "basic_auth": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get user's access token",
+        "parameters": [
+          {
+            "name": "userName",
+            "in": "path",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "access token",
+            "schema": {
+              "type": "string",
+              "example": "token"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "basic_auth": []
+          }
+        ]
+      }
+    },
+    "/collections": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Get all collection Metadata",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "collectionName",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "operation success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Collection"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Create new collection",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/CollectionForm"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "user_token": []
+          }
+        ]
+      }
+    },
+    "/collections/{collectionId}": {
+      "get": {
+        "summary": "Get data from collection",
+        "description": "Get data from collection",
+        "tags": [
+          "collections"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "operation success",
+            "schema": {
+              "$ref": "#/definitions/Data"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorizated"
+          },
+          "404": {
+            "description": "Not  Found"
+          }
+        },
+        "security": [
+          {
+            "ticket": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Insert data to collection",
+        "description": "Insert data to collection",
+        "tags": [
+          "collections"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/Data"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "operation success"
+          },
+          "401": {
+            "description": "Unauthorizated"
+          },
+          "404": {
+            "description": "Not  Found"
+          }
+        },
+        "security": [
+          {
+            "ticket": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete collection",
+        "description": "Delete collection",
+        "tags": [
+          "collections"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "operation success"
+          },
+          "401": {
+            "description": "Unauthorizated"
+          },
+          "404": {
+            "description": "Not  Found"
+          }
+        },
+        "security": [
+          {
+            "user_token": []
+          }
+        ]
+      }
+    },
+    "/collections/{collectionId}/meta": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Get collection Metadata by Id",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "operation success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Collection"
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/tickets/{collectionId}": {
+      "get": {
+        "summary": "Generate ticket",
+        "description": "Generate ticket",
+        "tags": [
+          "tickets"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "operation success",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "user_token": []
+          }
+        ]
+      }
+    },
+    "/accesscontrol/users/{userName}/collections/{collectionId}/role/{role}": {
+      "put": {
+        "summary": "Change a user role",
+        "description": "Change a user role",
+        "tags": [
+          "access control"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "userName",
+            "required": true,
+            "type": "string",
+            "description": "target user name"
+          },
+          {
+            "in": "path",
+            "name": "role",
+            "required": true,
+            "type": "string",
+            "description": "OWNER or CONTRIBUTOR or READ"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "operation success",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "user_token": []
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "UserForm": {
+      "type": "object",
+      "properties": {
+        "userName": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "CollectionForm": {
+      "type": "object",
+      "properties": {
+        "collectionName": {
+          "type": "string"
+        },
+        "endPoint": {
+          "type": "string",
+          "default": "local"
+        },
+        "type": {
+          "type": "string"
+        },
+        "example": {
+          "type": "object"
+        },
+        "isOpen": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Collection": {
+      "type": "object",
+      "properties": {
+        "collectionId": {
+          "type": "string"
+        },
+        "collectionName": {
+          "type": "string"
+        },
+        "endPoint": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "example": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "isOpen": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Data": {
+      "type": "object",
+      "properties": {
+        "field0": {
+          "description": "data0",
+          "example": "data0"
+        },
+        "field1": {
+          "description": "data1",
+          "example": "data1"
+        },
+        "field...": {
+          "description": "data...",
+          "example": "data..."
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "basic_auth": {
+      "type": "basic"
+    },
+    "user_token": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "User token"
+    },
+    "ticket": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Ticket"
+    }
+  }
+}
