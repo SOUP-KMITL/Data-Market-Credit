@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3'
 
 services:
     # mariadb:
@@ -13,9 +13,19 @@ services:
     #         - "8080:80"
     #     links:
     #         - mariadb:db
-    mongodb:
-        image: "mongo:3.5.13"
-        volumes:
-            - ./db:/data/db
-        ports:
-            - "27017:27017"
+    # mongodb:
+    #     image: "mongo:3.5.13"
+    #     volumes:
+    #         - ./db:/data/db
+    #     ports:
+    #         - "27017:27017"
+    credit-service:
+        image: worker-01:5000/credit-service
+        build: .
+        networks:
+            - default
+
+networks:
+  default:
+    external:
+        name: ticketing_default

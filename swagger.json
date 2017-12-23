@@ -1,0 +1,49 @@
+"path": {
+    "/credits/{userId}": {
+        "get": {
+            "summary": "Get user's credit balance",
+            "description": "Get user's credit balance",
+            "tags": [
+                "credits"
+            ],
+            "parameters": [
+                {
+                    "in": "path",
+                    "name": "userId",
+                    "type": "string",
+                    "required": true
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "operation successful",
+                    "schema": {
+                        "$ref": "#/definitions/Credit"
+                    }
+                },
+                "400": {
+                    "description": "Bad Request"
+                },
+                "404": {
+                    "description": "userId not found"
+                }
+            }
+        }
+    }
+},
+"definitions": {
+    "Credit": {
+        "type": "object",
+        "properties": {
+            "status": {
+                "type": "string"
+            },
+            "message": {
+                "type": "string"
+            },
+            "credits": {
+                "type": "number"
+            }
+        }
+    }
+}
