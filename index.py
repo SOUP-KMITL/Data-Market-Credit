@@ -45,30 +45,35 @@ def transfer(srcUserId, dstUserId, amount):
     retResp = {"status": "failed", "message": "", "is_transfered": False}
     httpCode = 400
 
-    src, srcStatus = getCredits(srcUserId)
-    dst, dstStatus = getCredits(dstUserId)
-
-    if srcStatus != 200:
-        retResp["message"] = "couldn't find src user " + getRtrnUserId(srcUserId)
-        httpCode = 404
-    elif dstStatus != 200:
-        retResp["message"] = "couldn't find dst user " + getRtrnUserId(dstUserId)
-        httpCode = 404
-    elif (not (amount > 0)) or (src.get("credits", 0) < amount):
-        retResp["message"] = "invalid transaction"
-    else:
-        mongo.db.user_credits.update_one(
-            {"userId": dstUserId},
-            {"$inc": {"credits": amount}})
-
-        mongo.db.user_credits.update_one(
-            {"userId": srcUserId},
-            {"$inc": {"credits": - amount}})
-
+    if srcUserId == dstUserId:
         retResp["status"] = "successful"
-        retResp["message"] = "transaction completed"
         retResp["is_transfered"] = True
         httpCode = 200
+    else:
+        src, srcStatus = getCredits(srcUserId)
+        dst, dstStatus = getCredits(dstUserId)
+
+        if srcStatus != 200:
+            retResp["message"] = "couldn't find src user " + getRtrnUserId(srcUserId)
+            httpCode = 404
+        elif dstStatus != 200:
+            retResp["message"] = "couldn't find dst user " + getRtrnUserId(dstUserId)
+            httpCode = 404
+        elif (not (amount > 0)) or (src.get("credits", 0) < amount):
+            retResp["message"] = "invalid transaction"
+        else:
+            mongo.db.user_credits.update_one(
+                {"userId": dstUserId},
+                {"$inc": {"credits": amount}})
+
+            mongo.db.user_credits.update_one(
+                {"userId": srcUserId},
+                {"$inc": {"credits": - amount}})
+
+            retResp["status"] = "successful"
+            retResp["message"] = "transaction completed"
+            retResp["is_transfered"] = True
+            httpCode = 200
 
     return retResp, httpCode
 
