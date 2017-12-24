@@ -3,9 +3,9 @@
 if [ -z "$1" ] || [ -z "$2" ]
 then
     echo "rsync -azrP --exclude-from \"rsync.exc\" --include \".dockerignore\" \
-        ./ smartCity-dataMarket-tmp:/home/centos/kohpai/"
+        ./ smartCity-dataMarket-tmp:/home/centos/credit/"
     rsync -azrP --exclude-from "rsync.exc" --include ".dockerignore" \
-        ./ smartCity-dataMarket-tmp:/home/centos/kohpai/
+        ./ smartCity-dataMarket-tmp:/home/centos/credit/
 else
     echo "rsync -azrP --exclude-from \"rsync.exc\" --include \".dockerignore\" ./ $1:$2"
     rsync -azrP --exclude-from "rsync.exc" --include ".dockerignore" ./ $1:$2
