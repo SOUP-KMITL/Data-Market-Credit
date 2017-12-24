@@ -1,29 +1,33 @@
+import os
+
+env    = os.environ.get("FLASK_ENV", "DEV")
+dbhost = os.environ.get("DB_HOST", "172.16.0.6")
+
+
 # Example configuration
 class DefaultConfig(object):
-    DEBUG = True
     MONGO_DBNAME = "data_market"
-    MONGO_HOST = "localhost"
-    MONGO_PORT = 27017
+    MONGO_HOST   = dbhost if env == "PROD" else "mongodb"
+    MONGO_PORT   = 27017
+    DEBUG        = False if env == "PROD" else True
 
 
 API_VER    = 1
-
 EXT_API_PORT    = 8080
-#  EXT_API_GATEWAY = "http://api.smartcity.kmitl.io:" + str(EXT_API_PORT) + "/api/v1"
-EXT_API_GATEWAY = "http://203.154.59.55:" + str(EXT_API_PORT) + "/api/v1"
 
-#  Production (public server) configuration
-#  API_PREFIX     = "/credits"
-#  COLLECTION_API = "http://collection-service:" + str(EXT_API_PORT) + "/api/v1/collections"
-#  USER_API       = "http://user-service:" + str(EXT_API_PORT) + "/api/v1/users"
-#  LOGIN_API      = USER_API + "/login"
-#  METER_API      = "http://meter-service:" + str(EXT_API_PORT) + "/api/v1/meters"
-
-#  Development (local) configuration
-API_PREFIX     = "/api/v" + str(API_VER) + "/credits"
-COLLECTION_API = EXT_API_GATEWAY + "/collections"
-USER_API       = EXT_API_GATEWAY + "/users"
-LOGIN_API      = USER_API + "/login"
-METER_API      = EXT_API_GATEWAY + "/meters"
-
-SECRET = "some secret"
+if env == "PROD":
+    #  Production (public server) configuration
+    API_PREFIX     = "/credits"
+    COLLECTION_API = "http://collection-service:" + str(EXT_API_PORT) + "/api/v1/collections"
+    USER_API       = "http://user-service:" + str(EXT_API_PORT) + "/api/v1/users"
+    LOGIN_API      = USER_API + "/login"
+    METER_API      = "http://meter-service:" + str(EXT_API_PORT) + "/api/v1/meters"
+else:
+    #  Development (local) configuration
+    #  EXT_API_GATEWAY = "http://api.smartcity.kmitl.io:" + str(EXT_API_PORT) + "/api/v1"
+    EXT_API_GATEWAY = "http://203.154.59.55:" + str(EXT_API_PORT) + "/api/v1"
+    API_PREFIX     = "/api/v" + str(API_VER) + "/credits"
+    COLLECTION_API = EXT_API_GATEWAY + "/collections"
+    USER_API       = EXT_API_GATEWAY + "/users"
+    LOGIN_API      = USER_API + "/login"
+    METER_API      = EXT_API_GATEWAY + "/meters"
