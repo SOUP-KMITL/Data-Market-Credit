@@ -1,13 +1,13 @@
 import os
 
 env    = os.environ.get("FLASK_ENV", "DEV")
-dbhost = os.environ.get("DB_HOST", "172.16.0.6")
+dbhost = os.environ.get("DB_HOST", "mongodb")
 
 
 # Example configuration
 class DefaultConfig(object):
     MONGO_DBNAME = "data_market"
-    MONGO_HOST   = dbhost if env == "PROD" else "mongodb"
+    MONGO_HOST   = dbhost
     MONGO_PORT   = 27017
     DEBUG        = False if env == "PROD" else True
 
