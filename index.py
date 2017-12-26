@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 from flask_pymongo import PyMongo
-from pymongo import ReturnDocument
 import requests
 #  import json
 
@@ -14,14 +13,25 @@ ticketRate = 100
 
 
 @app.route(appconfig.API_PREFIX + "/<userId>/")
-def getViewCredits(userId):
-    retResp, httpCode = getCredits(userId)
+def getUserCredits(userId):
+    retResp = {"status": "failed", "message": "", "credits": -1}
+    httpCode = 400
+
+    try:
+        credits = getCredits(userId)
+    except (requests.ConnectionError, requests.ConnectTimeout, Exception) as e:
+        retResp["message"] = e.__str__()
+    else:
+        retResp["status"] = "successful"
+        retResp["credits"] = credits
+        httpCode = 200
+
     return jsonify(retResp), httpCode
 
 
 @app.route(appconfig.API_PREFIX + "/transactions/", methods=['POST'])
 def createTranscation():
-    retResp = {"status": "failed", "message": "", "is_transfered": False}
+    retResp = {"status": "failed", "message": "", "isTransferred": False}
     httpCode = 400
 
     if request.is_json:
@@ -32,7 +42,17 @@ def createTranscation():
         amount = getPrice(collectionId)
 
         if amount is not None:
-            retResp, httpCode = transfer(buyer, seller, amount)
+            try:
+                retResp["isTransferred"] = transfer(buyer, seller, amount)
+            except (requests.ConnectionError, requests.ConnectTimeout, Exception) as e:
+                retResp["message"] = e.__str__()
+            else:
+                if retResp.get("isTransferred", False):
+                    retResp["message"] = "transaction completed"
+                    retResp["status"] = "successful"
+                    httpCode = 200
+                else:
+                    retResp["message"] = "invalid amount of credits"
         else:
             retResp["message"] = "couldn't find collection " + collectionId
     else:
@@ -41,41 +61,36 @@ def createTranscation():
     return jsonify(retResp), httpCode
 
 
+#  @app.route(appconfig.API_PREFIX + "/test/")
+#  def test():
+#      userCredits = mongo.db.user_credits.find({}, {"_id": False, "timestamp": False})
+#      return jsonify(list(userCredits)), 200
+
+
 def transfer(srcUserId, dstUserId, amount):
-    retResp = {"status": "failed", "message": "", "is_transfered": False}
-    httpCode = 400
-
     if srcUserId == dstUserId:
-        retResp["status"] = "successful"
-        retResp["is_transfered"] = True
-        httpCode = 200
-    else:
-        src, srcStatus = getCredits(srcUserId)
-        dst, dstStatus = getCredits(dstUserId)
+        return True
 
-        if srcStatus != 200:
-            retResp["message"] = "couldn't find src user " + getRtrnUserId(srcUserId)
-            httpCode = 404
-        elif dstStatus != 200:
-            retResp["message"] = "couldn't find dst user " + getRtrnUserId(dstUserId)
-            httpCode = 404
-        elif (not (amount > 0)) or (src.get("credits", 0) < amount):
-            retResp["message"] = "invalid transaction"
-        else:
-            mongo.db.user_credits.update_one(
-                {"userId": dstUserId},
-                {"$inc": {"credits": amount}})
+    try:
+        srcCredits = getCredits(srcUserId)
 
-            mongo.db.user_credits.update_one(
-                {"userId": srcUserId},
-                {"$inc": {"credits": - amount}})
+        # Just to sync the credits
+        getCredits(dstUserId)
+    except (requests.ConnectionError, requests.ConnectTimeout, Exception):
+        raise
 
-            retResp["status"] = "successful"
-            retResp["message"] = "transaction completed"
-            retResp["is_transfered"] = True
-            httpCode = 200
+    if (not (amount > 0)) or (srcCredits < amount):
+        return False
 
-    return retResp, httpCode
+    mongo.db.user_credits.update_one(
+        {"userId": dstUserId},
+        {"$inc": {"credits": amount}})
+
+    mongo.db.user_credits.update_one(
+        {"userId": srcUserId},
+        {"$inc": {"credits": - amount}})
+
+    return True
 
 
 # @TODO
@@ -127,62 +142,68 @@ def syncCollectionPrice(collectionId):
 
 
 def getCredits(userId):
+    credits = 0
     userCredits = mongo.db.user_credits.find_one(
             {"userId": userId},
             {"_id": False})
-    retResp = {"status": "failed", "message": "", "credits": None}
 
     if userCredits is not None:
-        retResp["status"] = "successful"
-        retResp["credits"] = userCredits.get("credits", 0)
-        credits, ts = calCredits(userId, userCredits.get("timestamp", 0))
+        ts = 0
+        marginCredits = 0
+        credits = userCredits.get("credits", 0)
+
+        try:
+            marginCredits, ts = calCredits(userId, userCredits.get("timestamp", 0))
+        except (requests.ConnectionError, requests.ConnectTimeout):
+            raise
 
         if ts != 0:
-            userCredits = mongo.db.user_credits.find_one_and_update(
+            mongo.db.user_credits.update_one(
                     {"userId": userId},
-                    {"$inc": {"credits": credits}, "$set": {"timestamp": ts}},
-                    {"_id": False},
-                    return_document=ReturnDocument.AFTER)
-            retResp["credits"] += credits
+                    {"$inc": {"credits": marginCredits}, "$set": {"timestamp": ts}})
 
-        return retResp, 200
+            credits += marginCredits
     else:
-        return syncUserCredits(userId)
+        try:
+            credits = syncUserCredits(userId)
+        except (requests.ConnectionError, requests.ConnectTimeout, Exception):
+            raise
+
+    return credits
 
 
 def syncUserCredits(userId):
     query = {"userId": userId}
-    retResp = {"status": "failed", "message": "", "credits": None}
-    httpCode = 400
+    credits = 0
+    resp = None
 
     try:
         resp = requests.get(appconfig.USER_API, params=query)
     except requests.ConnectionError:
-        retResp["message"] = "couldn't connect to external service"
+        print("syncUserCredits: couldn't connect to external service")
+        raise
     except requests.ConnectTimeout:
-        retResp["message"] = "connection to external service timeout"
+        print("syncUserCredits: connection to external service timeout")
+        raise
+
+    if resp.status_code == 200:
+        users = resp.json()
+
+        if len(users) == 1:
+            credits, ts = calCredits(userId, 0)
+            user = {
+                    "userId": users[0].get("userId", ""),
+                    "credits": credits,
+                    "timestamp": ts}
+            mongo.db.user_credits.insert_one(user)
+        else:
+            print("syncUserCredits: couldn't find user " + userId)
+            raise Exception("couldn't find user " + userId)
     else:
-        retResp["message"] = getRtrnMsg(resp.status_code)
+        print("syncUserCredits: external service returned with unexpected value")
+        raise Exception("external service returned with unexpected value")
 
-        if resp.status_code == 200:
-            users = resp.json()
-
-            if len(users) == 1:
-                credits, ts = calCredits(userId, 0)
-                user = {
-                        "userId": users[0].get("userId", ""),
-                        "credits": credits,
-                        "timestamp": ts}
-                mongo.db.user_credits.insert_one(user)
-
-                retResp["status"] = "successful"
-                retResp["credits"] = credits
-                httpCode = 200
-            else:
-                retResp["message"] = "couldn't find user " + userId
-                httpCode = 404
-    finally:
-        return retResp, httpCode
+    return credits
 
 
 def calCredits(userId, timestamp):
@@ -196,11 +217,11 @@ def calCredits(userId, timestamp):
     try:
         resp = requests.get(appconfig.METER_API, params=query)
     except requests.ConnectionError:
-        # TODO log error
         print("calCredits: couldn't connect to external service")
+        raise
     except requests.ConnectTimeout:
-        # TODO log error
         print("calCredits: connection to external service timeout")
+        raise
     else:
         if resp.status_code == 200:
             meters = resp.json()
