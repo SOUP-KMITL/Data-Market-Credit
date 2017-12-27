@@ -13,7 +13,7 @@ class DefaultConfig(object):
 
 
 API_VER    = 1
-EXT_API_PORT    = 8080
+EXT_API_PORT    = 80
 
 if env == "PROD":
     #  Production (public server) configuration

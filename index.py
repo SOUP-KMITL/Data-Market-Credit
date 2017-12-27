@@ -14,16 +14,19 @@ ticketRate = 100
 
 @app.route(appconfig.API_PREFIX + "/<userId>/")
 def getUserCredits(userId):
-    retResp = {"status": "failed", "message": "", "credits": -1}
+    retResp = {"success": False, "message": ""}
     httpCode = 400
 
     try:
         credits = getCredits(userId)
-    except (requests.ConnectionError, requests.ConnectTimeout, Exception) as e:
+    except (requests.ConnectionError, requests.ConnectTimeout) as e:
         retResp["message"] = e.__str__()
+        httpCode = 500
+    except Exception as e:
+        retResp["message"] = e.args[1]
+        httpCode = e.args[0]
     else:
-        retResp["status"] = "successful"
-        retResp["credits"] = credits
+        retResp = {"userId": userId, "credits": credits}
         httpCode = 200
 
     return jsonify(retResp), httpCode
@@ -31,7 +34,8 @@ def getUserCredits(userId):
 
 @app.route(appconfig.API_PREFIX + "/transactions/", methods=['POST'])
 def createTranscation():
-    retResp = {"status": "failed", "message": "", "isTransferred": False}
+    retResp = {"success": False, "message": ""}
+    isTransferred = False
     httpCode = 400
 
     if request.is_json:
@@ -43,16 +47,21 @@ def createTranscation():
 
         if amount is not None:
             try:
-                retResp["isTransferred"] = transfer(buyer, seller, amount)
-            except (requests.ConnectionError, requests.ConnectTimeout, Exception) as e:
+                isTransferred = transfer(buyer, seller, amount)
+            except (requests.ConnectionError, requests.ConnectTimeout) as e:
                 retResp["message"] = e.__str__()
+                httpCode = 503
+            except Exception as e:
+                retResp["message"] = e.args[1]
+                httpCode = e.args[0]
             else:
-                if retResp.get("isTransferred", False):
+                if isTransferred:
                     retResp["message"] = "transaction completed"
-                    retResp["status"] = "successful"
-                    httpCode = 200
+                    retResp["success"] = True
+                    httpCode = 201
                 else:
                     retResp["message"] = "invalid amount of credits"
+                    httpCode = 400
         else:
             retResp["message"] = "couldn't find collection " + collectionId
     else:
@@ -96,7 +105,8 @@ def transfer(srcUserId, dstUserId, amount):
 # @TODO
 # This function should sync the price of collections
 # in the DB and return the correct price to the caller.
-# Since for now, we're gonna fix the price, so just return smth.
+# Since for now, we're gonna use a fixed the price,
+# so just return smth.
 def getPrice(collectionId):
     collectionPrice = mongo.db.collection_price.find_one(
             {"collectionId": collectionId},
@@ -118,14 +128,12 @@ def syncCollectionPrice(collectionId):
     try:
         resp = requests.get(appconfig.COLLECTION_API + "/" + collectionId + "/meta")
     except requests.ConnectionError:
-        # TODO log error
         print("syncCollectionPrice: couldn't connect to external service")
+        raise
     except requests.ConnectTimeout:
-        # TODO log error
         print("syncCollectionPrice: connection to external service timeout")
+        raise
     else:
-        print("syncCollectionPrice: " + getRtrnMsg(resp.status_code))
-
         if resp.status_code == 200:
             collections = resp.json()
 
@@ -135,8 +143,11 @@ def syncCollectionPrice(collectionId):
 
                 price = ticketRate
             else:
-                # TODO log error
                 print("syncCollectionPrice: couldn't find collection " + collectionId)
+                raise Exception(400, "couldn't find collection " + collectionId)
+        else:
+            print("syncCollectionPrice: Unknown external service error " + str(resp.status_code))
+            raise Exception(resp.status_code, "Unknown external service error")
     finally:
         return price
 
@@ -198,10 +209,10 @@ def syncUserCredits(userId):
             mongo.db.user_credits.insert_one(user)
         else:
             print("syncUserCredits: couldn't find user " + userId)
-            raise Exception("couldn't find user " + userId)
+            raise Exception(400, "couldn't find user " + userId)
     else:
-        print("syncUserCredits: external service returned with unexpected value")
-        raise Exception("external service returned with unexpected value")
+        print("syncCollectionPrice: Unknown external service error " + str(resp.status_code))
+        raise Exception(resp.status_code, "Unknown external service error")
 
     return credits
 
@@ -241,14 +252,3 @@ def sumCredits(meters):
         ts = (meter.get("timestamp", 0) if meter.get("timestamp", 0) > ts else ts)
 
     return accum, ts
-
-
-def getRtrnMsg(code):
-    return {
-            400: "Bad request",
-            500: "external service error",
-            200: ""}.get(code, "Unknown external service error: " + str(code))
-
-
-def getRtrnUserId(userId):
-    return "<blank userId>" if not userId else userId
