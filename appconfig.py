@@ -12,16 +12,17 @@ class DefaultConfig(object):
     DEBUG        = False if env == "PROD" else True
 
 
-API_VER    = 1
-EXT_API_PORT    = 80
+API_VER = 1
+EXT_API_PORT = 80
+INT_API_PORT = 8080
 
 if env == "PROD":
     #  Production (public server) configuration
     API_PREFIX     = "/credits"
-    COLLECTION_API = "http://collection-service:" + str(EXT_API_PORT) + "/api/v1/collections"
-    USER_API       = "http://user-service:" + str(EXT_API_PORT) + "/api/v1/users"
+    COLLECTION_API = "http://collection-service:" + str(INT_API_PORT) + "/api/v1/collections"
+    USER_API       = "http://user-service:" + str(INT_API_PORT) + "/api/v1/users"
     LOGIN_API      = USER_API + "/login"
-    METER_API      = "http://meter-service:" + str(EXT_API_PORT) + "/api/v1/meters"
+    METER_API      = "http://meter-service:" + str(INT_API_PORT) + "/api/v1/meters"
 else:
     #  Development (local) configuration
     #  EXT_API_GATEWAY = "http://api.smartcity.kmitl.io:" + str(EXT_API_PORT) + "/api/v1"
