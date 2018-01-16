@@ -63,16 +63,22 @@ def createTranscation():
     collectionId = incomData.get("collectionId", "")
     amount = getPrice(collectionId) if ttype == "TCKT" else incomData.get("amount", 0)
 
+    print("Hello, it's me!")
+
     if amount is None:
         retResp["message"] = "couldn't find collection " + collectionId
         return jsonify(retResp), httpCode
 
+    print("Hello, it's still me!")
+
     try:
+        print("Hello, it's me again!")
         isTransferred = transfer(buyer, seller, amount)
     except (requests.ConnectionError, requests.ConnectTimeout) as e:
         retResp["message"] = e.__str__()
         httpCode = 503
     except Exception as e:
+        print("Hola, we are here!")
         retResp["message"] = e.args[1]
         httpCode = e.args[0]
     else:
@@ -80,19 +86,19 @@ def createTranscation():
             retResp["message"] = "invalid amount of credits"
             return jsonify(retResp), httpCode
 
-    transaction = {
-            "id": str(uuid.uuid1()),
-            "from": buyer,
-            "to": seller,
-            "amount": amount,
-            "type": ttype,
-            "created_at": int(time.time())}
+        transaction = {
+                "id": str(uuid.uuid1()),
+                "from": buyer,
+                "to": seller,
+                "amount": amount,
+                "type": ttype,
+                "created_at": int(time.time())}
 
-    mongo.db.transaction.insert_one(transaction)
+        mongo.db.transaction.insert_one(transaction)
 
-    retResp["message"] = "transaction completed"
-    retResp["success"] = True
-    httpCode = 201
+        retResp["message"] = "transaction completed"
+        retResp["success"] = True
+        httpCode = 201
 
     return jsonify(retResp), httpCode
 
