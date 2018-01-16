@@ -5,7 +5,6 @@ import time
 import uuid
 
 # Custom modules and packages
-from creditutil.transaction_type import TranactionType
 import appconfig
 
 app = Flask(__name__)
@@ -52,13 +51,13 @@ def createTranscation():
         retResp["message"] = "invalid request body type, expected JSON"
         return jsonify(retResp), httpCode
 
+    incomData = request.get_json()
     ttype = incomData.get("type", "")
 
     if not isValidTransactionType(ttype):
         retResp["message"] = "invalid transaction type"
         return jsonify(retResp), httpCode
 
-    incomData = request.get_json()
     buyer = incomData.get("from", "")
     seller = incomData.get("to", "")
     collectionId = incomData.get("collectionId", "")
@@ -285,6 +284,7 @@ def sumCredits(meters):
         ts = meter.get("timestamp", 0) if meter.get("timestamp", 0) > ts else ts
 
     return accum, ts
+
 
 def isValidTransactionType(t):
     return t in ["TCKT", "NORM"]
