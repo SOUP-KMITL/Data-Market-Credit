@@ -242,7 +242,7 @@ def syncUserCredits(userId):
             print("syncUserCredits: couldn't find user " + userId)
             raise Exception(400, "couldn't find user " + userId)
     else:
-        print("syncCollectionPrice: Unknown external service error " +
+        print("syncUserCredits: Unknown external service error " +
               str(resp.status_code))
         raise Exception(resp.status_code, "Unknown external service error")
 
